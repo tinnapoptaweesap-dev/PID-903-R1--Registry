@@ -356,8 +356,10 @@
             <option value="out">เฉพาะหนังสือออก</option>
           </select>
           <input type="text" id="filter-text" placeholder="ค้นหาเรื่อง / เลขที่ / ชื่อ...">
+          <button class="btn btn-ghost btn-sm" id="btn-import-sheet">📥 นำเข้าเอกสารเก่าจาก Sheets</button>
           <button class="btn btn-ghost btn-sm" id="btn-export">⬇ ส่งออก CSV</button>
         </div>
+        <div class="status" id="status-import"></div>
         <div class="table-wrap">
           <table class="log">
             <thead>
@@ -728,7 +730,7 @@ async function renderHistory(){
     <tr class="${r.isPlaceholder ? 'placeholder-row' : ''}">
       <td>${r.isPlaceholder
             ? '<span class="badge placeholder">เว้นว่าง</span>'
-            : `<span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'ลงรับ':'ออก'}</span>`}</td>
+            : `<span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'ลงรับ':'ออก'}</span>${r.isImported ? ' <span class="badge placeholder">นำเข้า</span>' : ''}`}</td>
       <td class="num-chip">${r.regNoDisplay}</td>
       <td>${r.companyNo || '-'}</td>
       <td>${r.docDate || '-'}</td>
@@ -749,6 +751,73 @@ window.deleteRecord = async function(id){
   await saveAll(next);
   renderHistory();
 };
+
+// ---------- Import existing records from Google Sheets ----------
+function parseRegDisplay(type, display){
+  // 'in' -> "5/2569" ; 'out' -> "PID903(R1)  8/2569"
+  const m = String(display).match(/(\d+)\s*\/\s*(\d{2,4})/);
+  if(!m) return null;
+  return { regNo: parseInt(m[1],10), beYear: parseInt(m[2],10) };
+}
+
+document.getElementById('btn-import-sheet').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('status-import');
+  statusEl.className = 'status show info';
+  statusEl.textContent = 'กำลังดึงข้อมูลเดิมจาก Google Sheets...';
+  try{
+    const res = await fetch(`${SYNC_URL}?action=fetchAll`, { method:'GET' });
+    const data = await res.json();
+    const all = await loadAll();
+    const existingKeys = new Set(all.map(r=>`${r.type}|${r.beYear}|${r.regNo}`));
+    let added = 0, skippedNoNumber = 0;
+
+    (data.inRows || []).forEach(row=>{
+      const display = row[0];
+      if(!display || String(display).includes('เลขที่หนังสือ')) return; // header/blank
+      const parsed = parseRegDisplay('in', display);
+      if(!parsed) { skippedNoNumber++; return; }
+      const key = `in|${parsed.beYear}|${parsed.regNo}`;
+      if(existingKeys.has(key)) return;
+      existingKeys.add(key);
+      all.push({
+        id: crypto.randomUUID(), type:'in', beYear: parsed.beYear, regNo: parsed.regNo,
+        regNoDisplay: String(display).trim(),
+        companyNo: row[1]||'', docDate: row[2]||'', subject: row[3]||'', from: row[4]||'',
+        to: row[5]||'', receivedDate: row[6]||'', action: row[7]||'',
+        isImported: true, createdAt: new Date().toISOString()
+      });
+      added++;
+    });
+
+    (data.outRows || []).forEach(row=>{
+      const display = row[0];
+      if(!display || String(display).includes('เลขที่หนังสือ')) return;
+      const parsed = parseRegDisplay('out', display);
+      if(!parsed) { skippedNoNumber++; return; }
+      const key = `out|${parsed.beYear}|${parsed.regNo}`;
+      if(existingKeys.has(key)) return;
+      existingKeys.add(key);
+      all.push({
+        id: crypto.randomUUID(), type:'out', beYear: parsed.beYear, regNo: parsed.regNo,
+        regNoDisplay: String(display).trim(),
+        docDate: row[1]||'', subject: row[2]||'', from: row[3]||'', to: row[4]||'',
+        folder: row[5]||'', action: row[6]||'',
+        isImported: true, createdAt: new Date().toISOString()
+      });
+      added++;
+    });
+
+    await saveAll(all);
+    statusEl.className = 'status show ok';
+    statusEl.textContent = `นำเข้าสำเร็จ — เพิ่มรายการใหม่ ${added} รายการ` + (skippedNoNumber ? ` (ข้าม ${skippedNoNumber} แถวที่อ่านเลขทะเบียนไม่ได้)` : '');
+    renderHistory();
+    refreshPreview('in');
+    refreshPreview('out');
+  }catch(err){
+    statusEl.className = 'status show err';
+    statusEl.textContent = 'นำเข้าไม่สำเร็จ (' + err.message + ') — ตรวจสอบว่าอัปเดตโค้ด Apps Script (doGet) และ Deploy เวอร์ชันใหม่แล้วหรือยัง';
+  }
+});
 
 document.getElementById('btn-export').addEventListener('click', async ()=>{
   const all = await loadAll();
