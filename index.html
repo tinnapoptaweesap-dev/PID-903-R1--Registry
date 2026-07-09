@@ -386,10 +386,13 @@
   </main>
 
   <footer class="note">
-    <b>หมายเหตุ:</b> Google Sheets "PID-903(R1)" คือแหล่งข้อมูลจริงเพียงแหล่งเดียว — เว็บแอปนี้อ่านและเขียนลง Sheets โดยตรงทุกครั้ง
+    <b>หมายเหตุ:</b> Google Sheets "PID-903(R1)" คือแหล่งข้อมูลจริงเพียงแหล่งเดียว — เว็บแอปนี้อ่านข้อมูลจากไฟล์ CSV ที่เผยแพร่ และเขียนกลับผ่าน Apps Script
     ไม่เก็บข้อมูลไว้ในเครื่อง จึงเห็นทะเบียนตรงกันทุกอุปกรณ์ และต้องมีอินเทอร์เน็ตขณะใช้งาน
-    หากเชื่อมต่อไม่ได้ ระบบจะปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ —
-    การลบหรือแก้ไขรายการย้อนหลัง ให้ดำเนินการใน Google Sheets โดยตรง แล้วกด "รีเฟรชจาก Sheets"
+    หากเชื่อมต่อไม่ได้ ระบบจะปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ
+    <br><br>
+    <b>ข้อควรทราบ:</b> Google หน่วงการอัปเดตไฟล์ CSV ที่เผยแพร่ประมาณ 1–5 นาที หลังบันทึกจึงอาจยังไม่เห็นแถวใหม่ทันที
+    ระบบจำรายการที่รออยู่ให้เองเพื่อไม่ให้ออกเลขซ้ำ — <b>อย่ากดบันทึกซ้ำ</b> ให้เปิด Google Sheet ตรวจสอบโดยตรงแทน
+    การลบหรือแก้ไขรายการย้อนหลัง ให้ดำเนินการใน Google Sheets แล้วกด "รีเฟรชจาก Sheets"
     <br><br>
     ระบบ OCR ทำงานฟรีในเครื่อง (ไม่เสียค่าใช้จ่าย ไม่ส่งรูปออกนอกเครื่อง) ความแม่นยำขึ้นกับความชัดของรูปและลายมือ
     <b>กรุณาตรวจสอบข้อมูลกับต้นฉบับก่อนบันทึกเป็นทะเบียนทางการทุกครั้ง</b>
@@ -412,44 +415,131 @@ tabs.forEach(btn=>{
 });
 
 // ---------- Google Sheets = แหล่งข้อมูลจริงเพียงแหล่งเดียว (Single Source of Truth) ----------
+// เขียนข้อมูล: ผ่าน Apps Script (doPost)
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbwps-WwtLYK29f_0XT7pPZfZEI6SNEIA74S18GkS4_WqCUTY2OMRH47_Cb8PSBvD2A/exec';
 
-// JSONP — เลี่ยงข้อจำกัด CORS ของ Apps Script (อ่านผลลัพธ์กลับมาได้)
-function jsonpRequest(url){
-  return new Promise((resolve, reject)=>{
-    const callbackName = 'jsonp_cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
-    const script = document.createElement('script');
-    let done = false;
-    window[callbackName] = (data)=>{
-      done = true;
-      resolve(data);
-      delete window[callbackName];
-      script.remove();
-    };
-    script.onerror = ()=>{
-      if(done) return;
-      reject(new Error('โหลดข้อมูลจาก Google Sheets ไม่สำเร็จ'));
-      delete window[callbackName];
-      script.remove();
-    };
-    script.src = `${url}&callback=${callbackName}`;
-    document.body.appendChild(script);
-    setTimeout(()=>{
-      if(!done){
-        reject(new Error('หมดเวลารอข้อมูลจาก Google Sheets'));
-        delete window[callbackName];
-        script.remove();
-      }
-    }, 20000);
+// อ่านข้อมูล: ผ่าน CSV ที่เผยแพร่จาก Sheets โดยตรง (ไม่ถูก Safari/iOS บล็อก)
+const CSV_URLS = [
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=539549680&single=true&output=csv',
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=0&single=true&output=csv'
+];
+
+// แยกวิเคราะห์ CSV รองรับเครื่องหมายคำพูดและจุลภาคภายในเซลล์
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0; i<text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field = ''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+      else if(c === '\r'){ /* ข้าม */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// ตรวจจับว่าตารางนี้คือแท็บ "ลงรับ" หรือ "หนังสือออก" จากหัวตาราง
+function detectSheetType(rows){
+  const header = (rows[0] || []).join(' ');
+  if(header.includes('บริษัท') || header.includes('รับวันที่')) return 'in';
+  if(header.includes('แฟ้ม')) return 'out';
+  return null;
+}
+
+async function fetchCsv(url){
+  // เติมพารามิเตอร์กันแคช เพื่อให้ได้ข้อมูลล่าสุดเสมอ
+  const res = await fetch(`${url}&_t=${Date.now()}`, { method:'GET', redirect:'follow' });
+  if(!res.ok) throw new Error(`โหลด CSV ไม่สำเร็จ (HTTP ${res.status})`);
+  return parseCSV(await res.text());
+}
+
+// ---------- แคชข้อมูลในหน่วยความจำ (สะท้อนข้อมูลใน Sheets) ----------
+let RECORDS = [];
+let SHEET_LOADED = false;
+// รายการที่ส่งไป Sheets แล้ว แต่ CSV ที่เผยแพร่ยังไม่อัปเดต (Google หน่วง 1-5 นาที)
+// ต้องรวมเข้าแคชทุกครั้ง มิฉะนั้นระบบจะเสนอเลขซ้ำ
+let PENDING = [];
+
+function mergePending(){
+  PENDING = PENDING.filter(p=>
+    !RECORDS.find(r=>r.type===p.type && r.beYear===p.beYear && r.regNo===p.regNo && !r.isPlaceholder)
+  );
+  PENDING.forEach(p=>{
+    const idx = RECORDS.findIndex(r=>r.type===p.type && r.beYear===p.beYear && r.regNo===p.regNo);
+    if(idx === -1) RECORDS.push(p);
+    else RECORDS[idx] = p; // ทับแถวเว้นว่างเดิมด้วยข้อมูลจริง
   });
 }
 
-// ส่งข้อมูลไปเพิ่มแถวใน Google Sheets
+function parseRegDisplay(display){
+  const m = String(display).match(/(\d+)\s*\/\s*(\d{2,4})/);
+  if(!m) return null;
+  return { regNo: parseInt(m[1],10), beYear: parseInt(m[2],10) };
+}
+
+// ดึงข้อมูลทั้งหมดจาก Google Sheets มาเก็บไว้ในแคช
+async function loadFromSheets(){
+  const tables = await Promise.all(CSV_URLS.map(fetchCsv));
+  const records = [];
+  let skipped = 0;
+  let foundIn = false, foundOut = false;
+
+  tables.forEach(rows=>{
+    const sheetType = detectSheetType(rows);
+    if(!sheetType) return;
+    if(sheetType === 'in') foundIn = true; else foundOut = true;
+
+    rows.slice(1).forEach(row=>{
+      const display = (row[0] || '').trim();
+      if(!display) return;
+      const parsed = parseRegDisplay(display);
+      if(!parsed){ skipped++; return; }
+
+      if(sheetType === 'in'){
+        records.push({
+          type:'in', beYear: parsed.beYear, regNo: parsed.regNo, regNoDisplay: display,
+          companyNo: row[1]||'', docDate: row[2]||'', subject: (row[3]||'').trim(),
+          from: row[4]||'', to: row[5]||'', receivedDate: row[6]||'', action: row[7]||'',
+          isPlaceholder: !(row[3]||'').trim()
+        });
+      } else {
+        records.push({
+          type:'out', beYear: parsed.beYear, regNo: parsed.regNo, regNoDisplay: display,
+          docDate: row[1]||'', subject: (row[2]||'').trim(), from: row[3]||'',
+          to: row[4]||'', folder: row[5]||'', action: row[6]||'',
+          isPlaceholder: !(row[2]||'').trim()
+        });
+      }
+    });
+  });
+
+  if(!foundIn || !foundOut){
+    throw new Error('อ่านแท็บไม่ครบ — ตรวจสอบว่าเผยแพร่ทั้งแท็บ "ลงรับ" และ "หนังสือออก" เป็น CSV แล้ว');
+  }
+
+  RECORDS = records;
+  SHEET_LOADED = true;
+  mergePending(); // รวมรายการที่ส่งไปแล้วแต่ CSV ยังไม่อัปเดต
+  return { count: RECORDS.length, skipped, pending: PENDING.length };
+}
+
+function loadAll(){ return RECORDS; }
+
+// ส่งข้อมูลไปเพิ่มแถวใน Google Sheets ผ่าน Apps Script
 async function syncToSheet(record){
   try{
     await fetch(SYNC_URL, {
       method: 'POST',
-      mode: 'no-cors', // Apps Script ไม่ส่ง CORS header กลับ จึงอ่าน response ตรงไม่ได้ แต่คำขอถูกประมวลผลตามปกติ
+      mode: 'no-cors', // อ่าน response ไม่ได้ แต่คำขอถูกประมวลผลตามปกติ
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify(record)
     });
@@ -459,74 +549,6 @@ async function syncToSheet(record){
     return false;
   }
 }
-
-// ---------- แคชข้อมูลในหน่วยความจำ (สะท้อนข้อมูลใน Sheets) ----------
-let RECORDS = [];
-let SHEET_LOADED = false;
-
-function parseRegDisplay(display){
-  const m = String(display).match(/(\d+)\s*\/\s*(\d{2,4})/);
-  if(!m) return null;
-  return { regNo: parseInt(m[1],10), beYear: parseInt(m[2],10) };
-}
-
-// ดึงข้อมูลจาก Apps Script — ลอง fetch ก่อน (Safari รองรับ) ถ้าไม่ได้ค่อยถอยไปใช้ JSONP (บาง proxy/เครือข่ายบล็อก CORS)
-async function fetchSheetData(){
-  const baseUrl = `${SYNC_URL}?action=fetchAll`;
-  // วิธีที่ 1: fetch ปกติ — Apps Script ส่ง CORS header กลับมาผ่าน redirect ปลายทาง
-  try{
-    const res = await fetch(baseUrl, { method:'GET', redirect:'follow' });
-    if(res.ok){
-      const data = await res.json();
-      if(data && (data.inRows || data.outRows)) return data;
-    }
-  }catch(e){
-    console.warn('fetch ไม่สำเร็จ กำลังลองวิธี JSONP:', e.message);
-  }
-  // วิธีที่ 2: JSONP — สำรองไว้เผื่อ fetch ถูกบล็อก
-  return await jsonpRequest(baseUrl);
-}
-
-// ดึงข้อมูลทั้งหมดจาก Google Sheets มาเก็บไว้ในแคช
-async function loadFromSheets(){
-  const data = await fetchSheetData();
-  const records = [];
-  let skipped = 0;
-
-  (data.inRows || []).forEach(row=>{
-    const display = row[0];
-    if(!display || String(display).includes('เลขที่หนังสือ')) return;
-    const parsed = parseRegDisplay(display);
-    if(!parsed){ skipped++; return; }
-    records.push({
-      type:'in', beYear: parsed.beYear, regNo: parsed.regNo,
-      regNoDisplay: String(display).trim(),
-      companyNo: row[1]||'', docDate: row[2]||'', subject: row[3]||'',
-      from: row[4]||'', to: row[5]||'', receivedDate: row[6]||'', action: row[7]||'',
-      isPlaceholder: !String(row[3]||'').trim()
-    });
-  });
-
-  (data.outRows || []).forEach(row=>{
-    const display = row[0];
-    if(!display || String(display).includes('เลขที่หนังสือ')) return;
-    const parsed = parseRegDisplay(display);
-    if(!parsed){ skipped++; return; }
-    records.push({
-      type:'out', beYear: parsed.beYear, regNo: parsed.regNo,
-      regNoDisplay: String(display).trim(),
-      docDate: row[1]||'', subject: row[2]||'', from: row[3]||'',
-      to: row[4]||'', folder: row[5]||'', action: row[6]||'',
-      isPlaceholder: !String(row[2]||'').trim()
-    });
-  });
-
-  RECORDS = records;
-  SHEET_LOADED = true;
-  return { count: records.length, skipped };
-}
-
-function loadAll(){ return RECORDS; }
 
 // ---------- Thai year helper ----------
 function currentBEYear(){
@@ -566,14 +588,15 @@ async function bootstrap(){
   banner.className = 'sync-banner loading';
   banner.textContent = '⏳ กำลังดึงทะเบียนล่าสุดจาก Google Sheets...';
   try{
-    const { count, skipped } = await loadFromSheets();
+    const { count, skipped, pending } = await loadFromSheets();
     refreshPreview('in');
     refreshPreview('out');
     renderHistory();
     setSaveButtonsEnabled(true);
     banner.className = 'sync-banner ok';
     banner.textContent = `✅ เชื่อมต่อ Google Sheets แล้ว — ทะเบียน ${count} รายการ`
-      + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '');
+      + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '')
+      + (pending ? ` — รอ Sheets อัปเดต ${pending} รายการ` : '');
   }catch(err){
     banner.className = 'sync-banner err';
     banner.textContent = '⚠ เชื่อมต่อ Google Sheets ไม่สำเร็จ — ปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดรีเฟรช (' + err.message + ')';
@@ -779,31 +802,41 @@ async function saveRecord(type){
     for(const p of placeholders) await syncToSheet(p);
     await syncToSheet(record);
 
-    // ดึงข้อมูลกลับมายืนยันว่าบันทึกจริง (Verify Before Use)
-    statusEl.textContent = 'กำลังตรวจสอบผลการบันทึก...';
-    await new Promise(r=>setTimeout(r, 1200)); // รอ Sheets เขียนเสร็จ
-    await loadFromSheets();
+    // ลงทะเบียนเป็นรายการที่รอ CSV อัปเดต — ป้องกันการเสนอเลขซ้ำระหว่างรอ
+    PENDING.push(...placeholders, record);
+    mergePending();
 
-    const confirmed = RECORDS.find(r=>r.type===type && r.beYear===year && r.regNo===chosen && !r.isPlaceholder);
     const label = type==='in' ? 'หนังสือรับ' : 'หนังสือออก';
+
+    // พยายามยืนยันจาก Sheets (CSV ที่เผยแพร่อาจหน่วง 1-5 นาที)
+    statusEl.textContent = 'กำลังตรวจสอบผลการบันทึก...';
+    let confirmed = false;
+    for(let attempt=0; attempt<3 && !confirmed; attempt++){
+      await new Promise(r=>setTimeout(r, 2000));
+      try{
+        await loadFromSheets(); // มี mergePending() ในตัว จึงไม่ทำให้รายการที่รออยู่หาย
+        confirmed = !PENDING.find(p=>p.type===type && p.beYear===year && p.regNo===chosen);
+      }catch(e){ /* ลองใหม่ */ }
+    }
 
     if(confirmed){
       statusEl.className='status show ok';
       let msg = `✅ บันทึกสำเร็จและยืนยันแล้วใน Google Sheets — เลขที่${label} ${record.regNoDisplay}`;
       if(fillingGap) msg += ' — หมายเหตุ: เลขนี้เคยเว้นว่างไว้ แถวใหม่ถูกเพิ่มต่อท้ายใน Sheets กรุณาย้ายแถวเองหากต้องการเรียงลำดับ';
       statusEl.textContent = msg;
-
-      // ล้างฟอร์ม
-      if(type==='in'){
-        ['in-companyNo','in-docDate','in-subject','in-from','in-receivedDate','in-action'].forEach(id=>document.getElementById(id).value='');
-        document.getElementById('in-to').value = 'นายช่างโครงการ';
-      } else {
-        ['out-docDate','out-folder','out-subject','out-to','out-action'].forEach(id=>document.getElementById(id).value='');
-        document.getElementById('out-from').value = 'นายช่างโครงการ';
-      }
     } else {
-      statusEl.className='status show err';
-      statusEl.textContent = `⚠ ส่งข้อมูลแล้วแต่ยังไม่พบแถวใหม่ใน Google Sheets — กรุณาเปิด Sheet ตรวจสอบด้วยตนเองก่อนบันทึกซ้ำ (เพื่อป้องกันแถวซ้ำซ้อน)`;
+      statusEl.className='status show info';
+      statusEl.textContent = `📤 ส่งข้อมูลเลขที่${label} ${record.regNoDisplay} ไปยัง Google Sheets แล้ว — แต่ยังยืนยันไม่ได้ เพราะ Google หน่วงการอัปเดตไฟล์ CSV ที่เผยแพร่ประมาณ 1-5 นาที `
+        + `⚠ กรุณาเปิด Google Sheet ตรวจสอบด้วยตนเองว่าแถวขึ้นจริง — อย่ากดบันทึกซ้ำ เพราะจะเกิดแถวซ้ำซ้อน`;
+    }
+
+    // ล้างฟอร์ม (ส่งข้อมูลไปแล้วไม่ว่าจะยืนยันได้หรือไม่)
+    if(type==='in'){
+      ['in-companyNo','in-docDate','in-subject','in-from','in-receivedDate','in-action'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('in-to').value = 'นายช่างโครงการ';
+    } else {
+      ['out-docDate','out-folder','out-subject','out-to','out-action'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('out-from').value = 'นายช่างโครงการ';
     }
 
     refreshPreview(type);
@@ -864,14 +897,15 @@ document.getElementById('btn-refresh-sheet').addEventListener('click', async ()=
   banner.className = 'sync-banner loading';
   banner.textContent = '⏳ กำลังดึงทะเบียนล่าสุดจาก Google Sheets...';
   try{
-    const { count, skipped } = await loadFromSheets();
+    const { count, skipped, pending } = await loadFromSheets();
     refreshPreview('in');
     refreshPreview('out');
     renderHistory();
     setSaveButtonsEnabled(true);
     banner.className = 'sync-banner ok';
     banner.textContent = `✅ อัปเดตแล้ว — ทะเบียน ${count} รายการ`
-      + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '');
+      + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '')
+      + (pending ? ` — รอ Sheets อัปเดต ${pending} รายการ` : '');
   }catch(err){
     banner.className = 'sync-banner err';
     banner.textContent = '⚠ เชื่อมต่อ Google Sheets ไม่สำเร็จ (' + err.message + ')';
