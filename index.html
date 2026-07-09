@@ -85,12 +85,17 @@
   .upload-zone{
     border:1.5px dashed var(--slate); border-radius:var(--radius);
     padding:22px; text-align:center; cursor:pointer; background:#FBFAF7;
-    transition:.15s;
+    transition:.15s; position:relative;
   }
   .upload-zone:hover{border-color:var(--bronze); background:#F7F2E8;}
   .upload-zone.has-image{padding:10px; text-align:left;}
-  .upload-zone input{display:none;}
+  .upload-zone input{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
   .upload-zone .hint{font-size:12.5px; color:var(--ink-soft); margin-top:6px;}
+  .upload-btn-row{display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  .upload-btn{position:relative;}
   .preview-row{display:flex; gap:12px; align-items:center;}
   .preview-row img{width:84px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
   .preview-info{flex:1; font-size:13px; color:var(--ink-soft);}
@@ -127,13 +132,19 @@
   .field textarea{resize:vertical; min-height:44px;}
 
   .stamp-preview{
-    display:flex; align-items:center; gap:14px; margin-top:16px;
+    display:flex; align-items:center; gap:14px; margin-top:16px; flex-wrap:wrap;
     padding:14px 16px; border-radius:9px; background:#F4EEE0; border:1px solid #E6D9BC;
   }
   .stamp-num{
     font-family:var(--mono); font-weight:700; font-size:19px; color:var(--bronze-dark);
     letter-spacing:.02em;
   }
+  .stamp-num-row{display:flex; align-items:baseline; gap:4px; margin-top:3px;}
+  .stamp-num-input{
+    width:72px; font-family:var(--mono); font-weight:700; font-size:19px; color:var(--bronze-dark);
+    border:1px solid #E6D9BC; border-radius:6px; padding:3px 6px; background:#fff; text-align:center;
+  }
+  .stamp-num-input:focus{outline:2px solid var(--bronze); outline-offset:1px;}
   .stamp-label{font-size:12px; color:var(--ink-soft);}
 
   .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
@@ -158,6 +169,8 @@
   .badge{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;}
   .badge.in{background:#E7F3EC; color:var(--green);}
   .badge.out{background:#EAF1F7; color:var(--navy-2);}
+  .badge.placeholder{background:#EFEAE0; color:var(--ink-soft);}
+  tr.placeholder-row td{color:var(--ink-soft); font-style:italic;}
 
   footer.note{padding:16px 20px; font-size:12px; color:var(--ink-soft); line-height:1.6;}
   footer.note b{color:var(--slate);}
@@ -185,15 +198,22 @@
       <div class="card">
         <h2>📷 ถ่ายรูป / อัปโหลดหนังสือที่รับเข้า</h2>
         <p class="desc">ระบบจะอ่านข้อมูลจากรูปด้วย OCR แล้วกรอกให้อัตโนมัติ กรุณาตรวจสอบความถูกต้องก่อนบันทึกทุกครั้ง</p>
-        <label class="upload-zone" id="dropzone-in">
-          <input type="file" accept="image/*" capture="environment" id="file-in">
+        <div class="upload-zone" id="dropzone-in">
           <div id="dz-in-empty">
             <div style="font-size:28px;">🧾</div>
-            <div style="font-weight:600; margin-top:4px;">แตะเพื่อถ่ายรูป หรือเลือกรูปภาพ</div>
+            <div style="font-weight:600; margin-top:4px;">เลือกวิธีนำเข้ารูปหนังสือ</div>
             <div class="hint">รองรับ JPG / PNG — ควรถ่ายให้เห็นเลขที่หนังสือ วันที่ และเรื่องชัดเจน</div>
+            <div class="upload-btn-row">
+              <label class="btn btn-ghost upload-btn">📷 ถ่ายรูปด้วยกล้อง
+                <input type="file" accept="image/*" capture="environment" id="file-in-camera">
+              </label>
+              <label class="btn btn-ghost upload-btn">🖼️ เลือกรูป/ไฟล์ในเครื่อง
+                <input type="file" accept="image/*" id="file-in-browse">
+              </label>
+            </div>
           </div>
           <div id="dz-in-filled" style="display:none;"></div>
-        </label>
+        </div>
         <div style="margin-top:12px; display:flex; gap:10px;">
           <button class="btn btn-primary" id="btn-ocr-in" disabled>🔍 อ่านข้อมูลด้วย OCR</button>
           <button class="btn btn-ghost" id="btn-clear-in" style="display:none;">ล้างรูป</button>
@@ -216,11 +236,14 @@
 
         <div class="stamp-preview">
           <div>
-            <div class="stamp-label">เลขที่หนังสือรับที่จะออก</div>
-            <div class="stamp-num" id="preview-num-in">—/—</div>
+            <div class="stamp-label">เลขที่หนังสือรับที่จะออก (แก้ไขเลขได้)</div>
+            <div class="stamp-num-row">
+              <input type="number" id="num-input-in" class="stamp-num-input" min="1">
+              <span class="stamp-num" id="stamp-suffix-in">/—</span>
+            </div>
           </div>
           <div style="margin-left:auto;">
-            <button class="btn btn-ghost btn-sm" id="btn-recalc-in">คำนวณเลขใหม่</button>
+            <button class="btn btn-ghost btn-sm" id="btn-recalc-in">ใช้เลขถัดไปอัตโนมัติ</button>
           </div>
         </div>
 
@@ -236,15 +259,22 @@
       <div class="card">
         <h2>📷 ถ่ายรูป / อัปโหลดร่างหนังสือที่จะออก</h2>
         <p class="desc">ใช้กับหนังสือที่นายช่างโครงการเป็นผู้ออก (ถึงคณะกรรมการ / ผู้รับจ้าง / หน่วยงานภายใน)</p>
-        <label class="upload-zone" id="dropzone-out">
-          <input type="file" accept="image/*" capture="environment" id="file-out">
+        <div class="upload-zone" id="dropzone-out">
           <div id="dz-out-empty">
             <div style="font-size:28px;">📄</div>
-            <div style="font-weight:600; margin-top:4px;">แตะเพื่อถ่ายรูป หรือเลือกรูปภาพ</div>
+            <div style="font-weight:600; margin-top:4px;">เลือกวิธีนำเข้ารูปร่างหนังสือ</div>
             <div class="hint">รองรับ JPG / PNG</div>
+            <div class="upload-btn-row">
+              <label class="btn btn-ghost upload-btn">📷 ถ่ายรูปด้วยกล้อง
+                <input type="file" accept="image/*" capture="environment" id="file-out-camera">
+              </label>
+              <label class="btn btn-ghost upload-btn">🖼️ เลือกรูป/ไฟล์ในเครื่อง
+                <input type="file" accept="image/*" id="file-out-browse">
+              </label>
+            </div>
           </div>
           <div id="dz-out-filled" style="display:none;"></div>
-        </label>
+        </div>
         <div style="margin-top:12px; display:flex; gap:10px;">
           <button class="btn btn-primary" id="btn-ocr-out" disabled>🔍 อ่านข้อมูลด้วย OCR</button>
           <button class="btn btn-ghost" id="btn-clear-out" style="display:none;">ล้างรูป</button>
@@ -265,11 +295,15 @@
 
         <div class="stamp-preview">
           <div>
-            <div class="stamp-label">เลขที่หนังสือออกที่จะออก</div>
-            <div class="stamp-num" id="preview-num-out">—</div>
+            <div class="stamp-label">เลขที่หนังสือออกที่จะออก (แก้ไขเลขได้)</div>
+            <div class="stamp-num-row">
+              <span class="stamp-num">PID903(R1)&nbsp;</span>
+              <input type="number" id="num-input-out" class="stamp-num-input" min="1">
+              <span class="stamp-num" id="stamp-suffix-out">/—</span>
+            </div>
           </div>
           <div style="margin-left:auto;">
-            <button class="btn btn-ghost btn-sm" id="btn-recalc-out">คำนวณเลขใหม่</button>
+            <button class="btn btn-ghost btn-sm" id="btn-recalc-out">ใช้เลขถัดไปอัตโนมัติ</button>
           </div>
         </div>
 
@@ -369,11 +403,12 @@ function currentBEYear(){
 }
 
 // ---------- Number computation ----------
-async function nextNumber(type){
+async function suggestedNumber(type){
   const year = currentBEYear();
   const all = await loadAll();
-  const count = all.filter(r=>r.type===type && r.beYear===year).length;
-  return {n: count+1, year};
+  const nums = all.filter(r=>r.type===type && r.beYear===year).map(r=>r.regNo);
+  const n = nums.length ? Math.max(...nums)+1 : 1;
+  return {n, year};
 }
 function formatNumber(type, n, year){
   if(type==='in') return `${n}/${year}`;
@@ -381,18 +416,32 @@ function formatNumber(type, n, year){
 }
 
 async function refreshPreview(type){
-  const {n, year} = await nextNumber(type);
-  const el = document.getElementById(type==='in' ? 'preview-num-in' : 'preview-num-out');
-  el.textContent = formatNumber(type, n, year);
+  const {n, year} = await suggestedNumber(type);
+  document.getElementById(`num-input-${type}`).value = n;
+  document.getElementById(`stamp-suffix-${type}`).textContent = `/${year}`;
 }
 refreshPreview('in');
 refreshPreview('out');
 document.getElementById('btn-recalc-in').addEventListener('click', ()=>refreshPreview('in'));
 document.getElementById('btn-recalc-out').addEventListener('click', ()=>refreshPreview('out'));
 
+async function createPlaceholders(type, year, fromN, toN){
+  const arr = [];
+  for(let s=fromN; s<toN; s++){
+    arr.push({
+      id: crypto.randomUUID(), type, beYear: year, regNo: s,
+      regNoDisplay: formatNumber(type, s, year), isPlaceholder: true,
+      companyNo:'', docDate:'', subject:'', from:'', to:'', receivedDate:'', folder:'', action:'',
+      createdAt: new Date().toISOString()
+    });
+  }
+  return arr;
+}
+
 // ---------- Image upload + OCR ----------
 function setupUpload(type){
-  const input = document.getElementById(`file-${type}`);
+  const cameraInput = document.getElementById(`file-${type}-camera`);
+  const browseInput = document.getElementById(`file-${type}-browse`);
   const dz = document.getElementById(`dropzone-${type}`);
   const empty = document.getElementById(`dz-${type}-empty`);
   const filled = document.getElementById(`dz-${type}-filled`);
@@ -400,8 +449,7 @@ function setupUpload(type){
   const clearBtn = document.getElementById(`btn-clear-${type}`);
   let imageData = null; // {base64, mediaType}
 
-  input.addEventListener('change', (e)=>{
-    const file = e.target.files[0];
+  function handleFile(file){
     if(!file) return;
     const reader = new FileReader();
     reader.onload = ()=>{
@@ -420,12 +468,16 @@ function setupUpload(type){
       clearBtn.style.display = 'inline-flex';
     };
     reader.readAsDataURL(file);
-  });
+  }
+
+  cameraInput.addEventListener('change', (e)=> handleFile(e.target.files[0]));
+  browseInput.addEventListener('change', (e)=> handleFile(e.target.files[0]));
 
   clearBtn.addEventListener('click', (e)=>{
     e.preventDefault();
     imageData = null;
-    input.value = '';
+    cameraInput.value = '';
+    browseInput.value = '';
     dz.classList.remove('has-image');
     empty.style.display='block';
     filled.style.display='none';
@@ -500,13 +552,35 @@ document.getElementById('btn-save-in').addEventListener('click', async ()=>{
   if(!subject){
     statusEl.className='status show err'; statusEl.textContent='กรุณากรอก "เรื่อง" ก่อนบันทึก'; return;
   }
-  const {n, year} = await nextNumber('in');
+  const chosen = parseInt(document.getElementById('num-input-in').value, 10);
+  if(!chosen || chosen < 1){
+    statusEl.className='status show err'; statusEl.textContent='กรุณาระบุเลขทะเบียนที่ถูกต้อง'; return;
+  }
+  const year = currentBEYear();
+  const all = await loadAll();
+  const dupIndex = all.findIndex(r=>r.type==='in' && r.beYear===year && r.regNo===chosen);
+  let filledSkippedGap = false;
+  if(dupIndex !== -1){
+    if(!all[dupIndex].isPlaceholder){
+      statusEl.className='status show err';
+      statusEl.textContent = `เลขที่ ${formatNumber('in', chosen, year)} ถูกใช้ไปแล้ว กรุณาเลือกเลขอื่น`;
+      return;
+    }
+    all.splice(dupIndex, 1); // เติมเลขที่เคยเว้นว่างไว้
+    filledSkippedGap = true;
+  }
+  let placeholders = [];
+  if(!filledSkippedGap){
+    const usedNums = all.filter(r=>r.type==='in' && r.beYear===year).map(r=>r.regNo);
+    const autoNext = usedNums.length ? Math.max(...usedNums)+1 : 1;
+    if(chosen > autoNext) placeholders = await createPlaceholders('in', year, autoNext, chosen);
+  }
   const record = {
     id: crypto.randomUUID(),
     type: 'in',
     beYear: year,
-    regNo: n,
-    regNoDisplay: formatNumber('in', n, year),
+    regNo: chosen,
+    regNoDisplay: formatNumber('in', chosen, year),
     companyNo: document.getElementById('in-companyNo').value.trim(),
     docDate: document.getElementById('in-docDate').value.trim(),
     subject,
@@ -516,14 +590,18 @@ document.getElementById('btn-save-in').addEventListener('click', async ()=>{
     action: document.getElementById('in-action').value.trim(),
     createdAt: new Date().toISOString()
   };
-  const all = await loadAll();
-  all.push(record);
+  all.push(...placeholders, record);
   await saveAll(all);
   statusEl.className='status show ok';
   statusEl.textContent = `บันทึกสำเร็จ — เลขที่หนังสือรับ ${record.regNoDisplay} — กำลังซิงค์ไปยัง Google Sheets...`;
-  syncToSheet(record).then(ok=>{
-    statusEl.textContent = `บันทึกสำเร็จ — เลขที่หนังสือรับ ${record.regNoDisplay}` + (ok ? ' — ส่งไปยัง Google Sheets แล้ว (กรุณาเปิด Sheet ตรวจสอบว่าขึ้นแถวใหม่จริง)' : ' — ⚠ ส่งไป Google Sheets ไม่สำเร็จ ข้อมูลยังปลอดภัยในเว็บแอปนี้ กด "ส่งออก CSV" เพื่อนำเข้าด้วยตนเองได้');
-  });
+  (async()=>{
+    for(const p of placeholders) await syncToSheet(p);
+    const ok = await syncToSheet(record);
+    let msg = `บันทึกสำเร็จ — เลขที่หนังสือรับ ${record.regNoDisplay}`;
+    msg += ok ? ' — ส่งไปยัง Google Sheets แล้ว (กรุณาเปิด Sheet ตรวจสอบว่าขึ้นแถวใหม่จริง)' : ' — ⚠ ส่งไป Google Sheets ไม่สำเร็จ ข้อมูลยังปลอดภัยในเว็บแอปนี้ กด "ส่งออก CSV" เพื่อนำเข้าด้วยตนเองได้';
+    if(filledSkippedGap) msg += ' — หมายเหตุ: เลขนี้เคยเว้นว่างไว้ แถวใหม่จะถูกเพิ่มต่อท้ายใน Sheets แทนแถวว่างเดิม กรุณาย้ายแถวด้วยตนเองหากต้องการเรียงลำดับ';
+    statusEl.textContent = msg;
+  })();
   ['in-companyNo','in-docDate','in-subject','in-from','in-receivedDate','in-action'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('in-to').value = 'นายช่างโครงการ';
   refreshPreview('in');
@@ -535,13 +613,35 @@ document.getElementById('btn-save-out').addEventListener('click', async ()=>{
   if(!subject){
     statusEl.className='status show err'; statusEl.textContent='กรุณากรอก "เรื่อง" ก่อนบันทึก'; return;
   }
-  const {n, year} = await nextNumber('out');
+  const chosen = parseInt(document.getElementById('num-input-out').value, 10);
+  if(!chosen || chosen < 1){
+    statusEl.className='status show err'; statusEl.textContent='กรุณาระบุเลขทะเบียนที่ถูกต้อง'; return;
+  }
+  const year = currentBEYear();
+  const all = await loadAll();
+  const dupIndex = all.findIndex(r=>r.type==='out' && r.beYear===year && r.regNo===chosen);
+  let filledSkippedGap = false;
+  if(dupIndex !== -1){
+    if(!all[dupIndex].isPlaceholder){
+      statusEl.className='status show err';
+      statusEl.textContent = `เลขที่ ${formatNumber('out', chosen, year)} ถูกใช้ไปแล้ว กรุณาเลือกเลขอื่น`;
+      return;
+    }
+    all.splice(dupIndex, 1);
+    filledSkippedGap = true;
+  }
+  let placeholders = [];
+  if(!filledSkippedGap){
+    const usedNums = all.filter(r=>r.type==='out' && r.beYear===year).map(r=>r.regNo);
+    const autoNext = usedNums.length ? Math.max(...usedNums)+1 : 1;
+    if(chosen > autoNext) placeholders = await createPlaceholders('out', year, autoNext, chosen);
+  }
   const record = {
     id: crypto.randomUUID(),
     type: 'out',
     beYear: year,
-    regNo: n,
-    regNoDisplay: formatNumber('out', n, year),
+    regNo: chosen,
+    regNoDisplay: formatNumber('out', chosen, year),
     docDate: document.getElementById('out-docDate').value.trim(),
     folder: document.getElementById('out-folder').value.trim(),
     subject,
@@ -550,14 +650,18 @@ document.getElementById('btn-save-out').addEventListener('click', async ()=>{
     action: document.getElementById('out-action').value.trim(),
     createdAt: new Date().toISOString()
   };
-  const all = await loadAll();
-  all.push(record);
+  all.push(...placeholders, record);
   await saveAll(all);
   statusEl.className='status show ok';
   statusEl.textContent = `บันทึกสำเร็จ — เลขที่หนังสือออก ${record.regNoDisplay} — กำลังซิงค์ไปยัง Google Sheets...`;
-  syncToSheet(record).then(ok=>{
-    statusEl.textContent = `บันทึกสำเร็จ — เลขที่หนังสือออก ${record.regNoDisplay}` + (ok ? ' — ส่งไปยัง Google Sheets แล้ว (กรุณาเปิด Sheet ตรวจสอบว่าขึ้นแถวใหม่จริง)' : ' — ⚠ ส่งไป Google Sheets ไม่สำเร็จ ข้อมูลยังปลอดภัยในเว็บแอปนี้ กด "ส่งออก CSV" เพื่อนำเข้าด้วยตนเองได้');
-  });
+  (async()=>{
+    for(const p of placeholders) await syncToSheet(p);
+    const ok = await syncToSheet(record);
+    let msg = `บันทึกสำเร็จ — เลขที่หนังสือออก ${record.regNoDisplay}`;
+    msg += ok ? ' — ส่งไปยัง Google Sheets แล้ว (กรุณาเปิด Sheet ตรวจสอบว่าขึ้นแถวใหม่จริง)' : ' — ⚠ ส่งไป Google Sheets ไม่สำเร็จ ข้อมูลยังปลอดภัยในเว็บแอปนี้ กด "ส่งออก CSV" เพื่อนำเข้าด้วยตนเองได้';
+    if(filledSkippedGap) msg += ' — หมายเหตุ: เลขนี้เคยเว้นว่างไว้ แถวใหม่จะถูกเพิ่มต่อท้ายใน Sheets แทนแถวว่างเดิม กรุณาย้ายแถวด้วยตนเองหากต้องการเรียงลำดับ';
+    statusEl.textContent = msg;
+  })();
   ['out-docDate','out-folder','out-subject','out-to','out-action'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('out-from').value = 'นายช่างโครงการ';
   refreshPreview('out');
@@ -584,12 +688,14 @@ async function renderHistory(){
   }
   emptyEl.style.display='none';
   body.innerHTML = filtered.map(r=>`
-    <tr>
-      <td><span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'ลงรับ':'ออก'}</span></td>
+    <tr class="${r.isPlaceholder ? 'placeholder-row' : ''}">
+      <td>${r.isPlaceholder
+            ? '<span class="badge placeholder">เว้นว่าง</span>'
+            : `<span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'ลงรับ':'ออก'}</span>`}</td>
       <td class="num-chip">${r.regNoDisplay}</td>
       <td>${r.companyNo || '-'}</td>
       <td>${r.docDate || '-'}</td>
-      <td>${r.subject}</td>
+      <td>${r.isPlaceholder ? '(ข้ามเลขนี้ไว้)' : r.subject}</td>
       <td>${r.from || '-'}</td>
       <td>${r.to || '-'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteRecord('${r.id}')">ลบ</button></td>
