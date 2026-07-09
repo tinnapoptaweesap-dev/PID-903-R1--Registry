@@ -207,11 +207,11 @@
   <header class="top">
     <p class="eyebrow">ระบบทะเบียนเอกสาร</p>
     <h1>หนังสือรับ – หนังสือออก</h1>
-    <p class="subtitle">สัญญาเลขที่ รทป.182(R1) &nbsp;|&nbsp; รหัสอ้างอิงโครงการ PID-903(R1) &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 5 (CSV)</b></p>
+    <p class="subtitle">สัญญาเลขที่ รทป.182(R1) &nbsp;|&nbsp; รหัสอ้างอิงโครงการ PID-903(R1) &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 7</b></p>
   </header>
 
   <nav class="tabs">
-    <button data-tab="in" class="active">ลงรับ</button>
+    <button data-tab="in" class="active">หนังสือรับ</button>
     <button data-tab="out">หนังสือออก</button>
     <button data-tab="history">ทะเบียนทั้งหมด</button>
   </nav>
@@ -362,7 +362,7 @@
         <div class="toolbar">
           <select id="filter-type">
             <option value="all">ทั้งหมด</option>
-            <option value="in">เฉพาะลงรับ</option>
+            <option value="in">เฉพาะหนังสือรับ</option>
             <option value="out">เฉพาะหนังสือออก</option>
           </select>
           <input type="text" id="filter-text" placeholder="ค้นหาเรื่อง / เลขที่ / ชื่อ...">
@@ -447,7 +447,7 @@ function parseCSV(text){
   return rows;
 }
 
-// ตรวจจับว่าตารางนี้คือแท็บ "ลงรับ" หรือ "หนังสือออก" จากหัวตาราง
+// ตรวจจับว่าตารางนี้คือแท็บ "หนังสือรับ" หรือ "หนังสือออก" จากหัวตาราง (ไม่ผูกกับชื่อแท็บ)
 function detectSheetType(rows){
   const header = (rows[0] || []).join(' ');
   if(header.includes('บริษัท') || header.includes('รับวันที่')) return 'in';
@@ -523,7 +523,7 @@ async function loadFromSheets(){
   });
 
   if(!foundIn || !foundOut){
-    throw new Error('อ่านแท็บไม่ครบ — ตรวจสอบว่าเผยแพร่ทั้งแท็บ "ลงรับ" และ "หนังสือออก" เป็น CSV แล้ว');
+    throw new Error('อ่านแท็บไม่ครบ — ตรวจสอบว่าเผยแพร่ทั้งแท็บ "หนังสือรับ" และ "หนังสือออก" เป็น CSV แล้ว');
   }
 
   RECORDS = records;
@@ -876,7 +876,7 @@ function renderHistory(){
     <tr class="${r.isPlaceholder ? 'placeholder-row' : ''}">
       <td>${r.isPlaceholder
             ? '<span class="badge placeholder">เว้นว่าง</span>'
-            : `<span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'ลงรับ':'ออก'}</span>`}</td>
+            : `<span class="badge ${r.type==='in'?'in':'out'}">${r.type==='in'?'รับ':'ออก'}</span>`}</td>
       <td class="num-chip">${r.regNoDisplay}</td>
       <td>${r.companyNo || '-'}</td>
       <td>${r.docDate || '-'}</td>
@@ -921,7 +921,7 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   all.sort((a,b)=> a.type.localeCompare(b.type) || a.beYear-b.beYear || a.regNo-b.regNo);
   const header = ['ประเภท','เลขทะเบียน','เลขที่บริษัท','ลงวันที่','เรื่อง','จาก','ถึง','แฟ้ม','รับเมื่อวันที่','ผลการดำเนินการ'];
   const rows = all.map(r=>[
-    r.type==='in'?'ลงรับ':'หนังสือออก', r.regNoDisplay, r.companyNo||'', r.docDate||'',
+    r.type==='in'?'หนังสือรับ':'หนังสือออก', r.regNoDisplay, r.companyNo||'', r.docDate||'',
     r.subject||'', r.from||'', r.to||'', r.folder||'', r.receivedDate||'', r.action||''
   ]);
   const csv = [header, ...rows].map(row=>
