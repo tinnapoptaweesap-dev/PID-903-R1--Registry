@@ -470,9 +470,26 @@ function parseRegDisplay(display){
   return { regNo: parseInt(m[1],10), beYear: parseInt(m[2],10) };
 }
 
+// ดึงข้อมูลจาก Apps Script — ลอง fetch ก่อน (Safari รองรับ) ถ้าไม่ได้ค่อยถอยไปใช้ JSONP (บาง proxy/เครือข่ายบล็อก CORS)
+async function fetchSheetData(){
+  const baseUrl = `${SYNC_URL}?action=fetchAll`;
+  // วิธีที่ 1: fetch ปกติ — Apps Script ส่ง CORS header กลับมาผ่าน redirect ปลายทาง
+  try{
+    const res = await fetch(baseUrl, { method:'GET', redirect:'follow' });
+    if(res.ok){
+      const data = await res.json();
+      if(data && (data.inRows || data.outRows)) return data;
+    }
+  }catch(e){
+    console.warn('fetch ไม่สำเร็จ กำลังลองวิธี JSONP:', e.message);
+  }
+  // วิธีที่ 2: JSONP — สำรองไว้เผื่อ fetch ถูกบล็อก
+  return await jsonpRequest(baseUrl);
+}
+
 // ดึงข้อมูลทั้งหมดจาก Google Sheets มาเก็บไว้ในแคช
 async function loadFromSheets(){
-  const data = await jsonpRequest(`${SYNC_URL}?action=fetchAll`);
+  const data = await fetchSheetData();
   const records = [];
   let skipped = 0;
 
