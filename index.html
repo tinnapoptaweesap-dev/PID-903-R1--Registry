@@ -1,21 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <head>
-  <!-- แก้ไข Title ของเว็บ -->
-  <title>ทะเบียนหนังสือรับ-ส่ง</title>
-  
-  <!-- บังคับให้ Description มีแค่คำที่ต้องการ -->
-  <meta name="description" content="ทะเบียนหนังสือรับส่ง">
-
-  <!-- เพิ่ม Open Graph Tags เพื่อควบคุมการแสดงผลในแอปแชทอย่าง LINE หรือ Facebook ให้แม่นยำขึ้น -->
-  <meta property="og:title" content="ทะเบียนหนังสือรับส่ง">
-  <meta property="og:description" content="ทะเบียนหนังสือรับส่ง">
-  <meta property="og:type" content="website">
-  
-  <!-- โค้ดอื่นๆ ของคุณ... -->
-</head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ทะเบียนหนังสือรับ-ส่ง | PID-903(R1)</title>
@@ -76,6 +61,55 @@
   }
   h1{margin:0; font-size:22px; font-weight:700; letter-spacing:.01em;}
   .subtitle{margin:4px 0 0; font-size:13.5px; color:#C7D2DD;}
+
+  /* หน้าจอเลือกสัญญา */
+  .select-warn{
+    margin:0 0 18px; padding:11px 14px; border-radius:8px;
+    background:#F4EEE0; border:1px solid #E6D9BC; color:var(--bronze-dark);
+    font-size:13px; font-weight:600;
+  }
+  .contract-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:560px){.contract-grid{grid-template-columns:1fr;}}
+  .contract-card{
+    text-align:left; background:var(--paper-2); border:1px solid var(--line);
+    border-left:4px solid var(--bronze); border-radius:var(--radius);
+    padding:18px 18px 16px; cursor:pointer; font-family:var(--sans);
+    transition:.15s; box-shadow:0 1px 2px rgba(18,42,67,0.04);
+  }
+  .contract-card:hover{
+    border-color:var(--slate); border-left-color:var(--navy-2);
+    transform:translateY(-1px); box-shadow:0 4px 12px rgba(18,42,67,0.10);
+  }
+  .contract-card:focus-visible{outline:2px solid var(--bronze); outline-offset:2px;}
+  .contract-card .name{font-size:19px; font-weight:700; color:var(--navy); margin:0 0 4px;}
+  .contract-card .desc{font-size:12.5px; color:var(--ink-soft); margin:0 0 10px; line-height:1.45;}
+  .contract-card .meta{
+    font-size:11px; font-weight:700; letter-spacing:.03em; color:var(--slate);
+    border-top:1px solid #EEEAE0; padding-top:9px;
+  }
+  .contract-card .meta .cont{color:var(--amber);}
+
+  /* แถบสัญญาปัจจุบันในหน้าแอป */
+  .contract-bar{
+    display:flex; align-items:center; gap:12px; margin-top:12px;
+    position:relative; z-index:2; flex-wrap:wrap;
+  }
+  .contract-current{
+    display:flex; flex-direction:column; gap:1px;
+    background:rgba(255,255,255,0.10); border:1px solid rgba(176,141,87,0.55);
+    border-radius:7px; padding:6px 12px;
+  }
+  .contract-current-label{
+    font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--bronze); font-weight:700;
+  }
+  .contract-current-name{font-size:16px; font-weight:700; color:#fff;}
+  .btn-change{
+    background:transparent; color:#C7D2DD; border:1px solid rgba(255,255,255,0.28);
+    border-radius:7px; padding:8px 12px; font-family:var(--sans); font-size:12.5px;
+    font-weight:600; cursor:pointer; transition:.15s;
+  }
+  .btn-change:hover{background:rgba(255,255,255,0.10); color:#fff;}
 
   nav.tabs{
     display:flex; gap:2px; background:var(--navy); padding:0 20px;
@@ -217,12 +251,34 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<div class="app">
+
+<!-- ============ หน้าจอที่ 1: เลือกสัญญา ============ -->
+<div class="app" id="screen-select">
+  <header class="top">
+    <p class="eyebrow">ระบบทะเบียนเอกสาร</p>
+    <h1>เลือกสัญญา</h1>
+    <p class="subtitle">กรุณาเลือกสัญญาที่ต้องการออกเลขทะเบียน &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 9</b></p>
+  </header>
+  <main>
+    <p class="select-warn">⚠ ตรวจสอบให้แน่ใจว่าเลือกสัญญาถูกต้อง ก่อนออกเลขทะเบียนทางการ</p>
+    <div class="contract-grid" id="contract-grid"></div>
+  </main>
+</div>
+
+<!-- ============ หน้าจอที่ 2: ระบบทะเบียน ============ -->
+<div class="app" id="screen-app" style="display:none;">
 
   <header class="top">
     <p class="eyebrow">ระบบทะเบียนเอกสาร</p>
     <h1>หนังสือรับ – หนังสือออก</h1>
-    <p class="subtitle">สัญญาเลขที่ รทป.182(R1) &nbsp;|&nbsp; รหัสอ้างอิงโครงการ PID-903(R1) &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 7</b></p>
+    <div class="contract-bar">
+      <div class="contract-current">
+        <span class="contract-current-label">สัญญาที่กำลังใช้งาน</span>
+        <span class="contract-current-name" id="contract-current-name">—</span>
+      </div>
+      <button class="btn-change" id="btn-change-contract">↔ เปลี่ยนสัญญา</button>
+    </div>
+    <p class="subtitle" id="contract-subtitle">—</p>
   </header>
 
   <nav class="tabs">
@@ -288,7 +344,7 @@
             <div class="stamp-label">เลขที่หนังสือรับที่จะออก (แก้ไขเลขได้)</div>
             <div class="stamp-num-row">
               <input type="number" id="num-input-in" class="stamp-num-input" min="1">
-              <span class="stamp-num" id="stamp-suffix-in">/—</span>
+              <span class="stamp-num" id="stamp-preview-in">—</span>
             </div>
           </div>
           <div style="margin-left:auto;">
@@ -353,9 +409,8 @@
           <div>
             <div class="stamp-label">เลขที่หนังสือออกที่จะออก (แก้ไขเลขได้)</div>
             <div class="stamp-num-row">
-              <span class="stamp-num">PID903(R1)&nbsp;</span>
               <input type="number" id="num-input-out" class="stamp-num-input" min="1">
-              <span class="stamp-num" id="stamp-suffix-out">/—</span>
+              <span class="stamp-num" id="stamp-preview-out">—</span>
             </div>
           </div>
           <div style="margin-left:auto;">
@@ -429,15 +484,54 @@ tabs.forEach(btn=>{
   });
 });
 
-// ---------- Google Sheets = แหล่งข้อมูลจริงเพียงแหล่งเดียว (Single Source of Truth) ----------
-// เขียนข้อมูล: ผ่าน Apps Script (doPost)
+// ---------- ตารางตั้งค่าสัญญา (Config) — เพิ่มสัญญาใหม่แก้เฉพาะที่นี่ ----------
+// เขียนข้อมูล: ผ่าน Apps Script (doPost) — ต้องส่ง contract key ไปด้วย
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbwps-WwtLYK29f_0XT7pPZfZEI6SNEIA74S18GkS4_WqCUTY2OMRH47_Cb8PSBvD2A/exec';
 
-// อ่านข้อมูล: ผ่าน CSV ที่เผยแพร่จาก Sheets โดยตรง (ไม่ถูก Safari/iOS บล็อก)
-const CSV_URLS = [
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=539549680&single=true&output=csv',
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=0&single=true&output=csv'
-];
+// pad(n, 3) => "004"  |  pad(n, 0) => "4"
+function pad(n, width){ return String(n).padStart(width, '0'); }
+
+const CONTRACTS = {
+  'PID903': {
+    label: 'PID-903(R1)',
+    subtitle: 'สัญญาเลขที่ รทป.182(R1) | รหัสอ้างอิงโครงการ PID-903(R1)',
+    yearlyReset: true,   // เลขเริ่มนับ 1 ใหม่ทุกปี
+    fmtIn:  (n, y) => `${n}/${y}`,
+    fmtOut: (n, y) => `PID903(R1)  ${n}/${y}`,
+    csvIn:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=539549680&single=true&output=csv',
+    csvOut: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRqENT0psY0TQHsHLWc7WdxqFGYmoRC1NExyWq13OJP3wkraG6FHIvT9ZuqSOayRaYWR__TTLhD_Sf6/pub?gid=0&single=true&output=csv'
+  },
+  'RTP182': {
+    label: 'รทป.182(R1)',
+    subtitle: 'สัญญาเลขที่ รทป.182(R1)',
+    yearlyReset: false,  // นับต่อเนื่อง ไม่รีเซ็ตเมื่อขึ้นปีใหม่
+    fmtIn:  (n, y) => `${pad(n,3)}/${y}`,
+    fmtOut: (n, y) => `รทป.182(R1) ${n}/${y}`,
+    csvOut: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSh6Mp4kMDLfAGKpCs64hIRiPaxIFpY14qgToV_GRqOgaz854X9qGMjHEG0FBUntELgR8g-ZzVe-gyf/pub?gid=0&single=true&output=csv',
+    csvIn:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSh6Mp4kMDLfAGKpCs64hIRiPaxIFpY14qgToV_GRqOgaz854X9qGMjHEG0FBUntELgR8g-ZzVe-gyf/pub?gid=1685238271&single=true&output=csv'
+  },
+  'RTP183': {
+    label: 'รทป.183(R1)',
+    subtitle: 'สัญญาเลขที่ รทป.183(R1)',
+    yearlyReset: true,
+    fmtIn:  (n, y) => `${pad(n,3)}/${y}`,
+    fmtOut: (n, y) => `รทป.183(R1)/${pad(n,3)}/${y}`,
+    csvOut: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTF5lAj8kyHBBfPTy4eCMDljHePZU3rQSEwhgYRMJMyhWNVXv3RBklGviNJ7uZzGaTPL4yRvakVOXhe/pub?gid=1016189464&single=true&output=csv',
+    csvIn:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTF5lAj8kyHBBfPTy4eCMDljHePZU3rQSEwhgYRMJMyhWNVXv3RBklGviNJ7uZzGaTPL4yRvakVOXhe/pub?gid=1762648180&single=true&output=csv'
+  },
+  'RTP186': {
+    label: 'รทป.186',
+    subtitle: 'สัญญาเลขที่ รทป.186',
+    yearlyReset: true,
+    fmtIn:  (n, y) => `${pad(n,2)}/${y}`,
+    fmtOut: (n, y) => `${n}/${y}`,
+    csvOut: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeMUmti2S-thqiNICS5I0M3JYKdyXdBFV2p8PMoT_hAD0ZJKg23NZvl96C9JaiiZ1JpL72R0px7rGU/pub?gid=0&single=true&output=csv',
+    csvIn:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTeMUmti2S-thqiNICS5I0M3JYKdyXdBFV2p8PMoT_hAD0ZJKg23NZvl96C9JaiiZ1JpL72R0px7rGU/pub?gid=459617646&single=true&output=csv'
+  }
+};
+
+let CURRENT = 'PID903'; // สัญญาที่กำลังใช้งาน
+function cfg(){ return CONTRACTS[CURRENT]; }
 
 // แยกวิเคราะห์ CSV รองรับเครื่องหมายคำพูดและจุลภาคภายในเซลล์
 function parseCSV(text){
@@ -462,101 +556,92 @@ function parseCSV(text){
   return rows;
 }
 
-// ตรวจจับว่าตารางนี้คือแท็บ "หนังสือรับ" หรือ "หนังสือออก" จากหัวตาราง (ไม่ผูกกับชื่อแท็บ)
-function detectSheetType(rows){
-  const header = (rows[0] || []).join(' ');
-  if(header.includes('บริษัท') || header.includes('รับวันที่')) return 'in';
-  if(header.includes('แฟ้ม')) return 'out';
-  return null;
-}
-
 async function fetchCsv(url){
-  // เติมพารามิเตอร์กันแคช เพื่อให้ได้ข้อมูลล่าสุดเสมอ
   const res = await fetch(`${url}&_t=${Date.now()}`, { method:'GET', redirect:'follow' });
   if(!res.ok) throw new Error(`โหลด CSV ไม่สำเร็จ (HTTP ${res.status})`);
   return parseCSV(await res.text());
 }
 
-// ---------- แคชข้อมูลในหน่วยความจำ (สะท้อนข้อมูลใน Sheets) ----------
+// ---------- แคชข้อมูลในหน่วยความจำ (สะท้อนข้อมูลใน Sheets ของสัญญาปัจจุบัน) ----------
 let RECORDS = [];
 let SHEET_LOADED = false;
 // รายการที่ส่งไป Sheets แล้ว แต่ CSV ที่เผยแพร่ยังไม่อัปเดต (Google หน่วง 1-5 นาที)
-// ต้องรวมเข้าแคชทุกครั้ง มิฉะนั้นระบบจะเสนอเลขซ้ำ
-let PENDING = [];
+// เก็บแยกตามสัญญา เพื่อไม่ให้ข้อมูลข้ามสัญญาปะปนกัน
+let PENDING = {};
+function pendingOf(key){ if(!PENDING[key]) PENDING[key] = []; return PENDING[key]; }
 
 function mergePending(){
-  PENDING = PENDING.filter(p=>
-    !RECORDS.find(r=>r.type===p.type && r.beYear===p.beYear && r.regNo===p.regNo && !r.isPlaceholder)
+  const p = pendingOf(CURRENT).filter(x=>
+    !RECORDS.find(r=>r.type===x.type && r.beYear===x.beYear && r.regNo===x.regNo && !r.isPlaceholder)
   );
-  PENDING.forEach(p=>{
-    const idx = RECORDS.findIndex(r=>r.type===p.type && r.beYear===p.beYear && r.regNo===p.regNo);
-    if(idx === -1) RECORDS.push(p);
-    else RECORDS[idx] = p; // ทับแถวเว้นว่างเดิมด้วยข้อมูลจริง
+  PENDING[CURRENT] = p;
+  p.forEach(x=>{
+    const idx = RECORDS.findIndex(r=>r.type===x.type && r.beYear===x.beYear && r.regNo===x.regNo);
+    if(idx === -1) RECORDS.push(x);
+    else RECORDS[idx] = x; // ทับแถวเว้นว่างเดิมด้วยข้อมูลจริง
   });
 }
 
+// อ่านเลขทะเบียนจากท้ายข้อความ รองรับ prefix ทุกแบบ และเลขย่อย (เช่น 035-19/2567)
 function parseRegDisplay(display){
-  const m = String(display).match(/(\d+)\s*\/\s*(\d{2,4})/);
+  const m = String(display).trim().match(/(\d+)(?:-(\d+))?\s*\/\s*(\d{2,4})$/);
   if(!m) return null;
-  return { regNo: parseInt(m[1],10), beYear: parseInt(m[2],10) };
+  return {
+    regNo: parseInt(m[1],10),
+    subNo: m[2] ? parseInt(m[2],10) : null,
+    beYear: parseInt(m[3],10)
+  };
 }
 
-// ดึงข้อมูลทั้งหมดจาก Google Sheets มาเก็บไว้ในแคช
+// ดึงข้อมูลทั้ง 2 แท็บของสัญญาปัจจุบันมาเก็บไว้ในแคช
 async function loadFromSheets(){
-  const tables = await Promise.all(CSV_URLS.map(fetchCsv));
+  const c = cfg();
+  const [inRows, outRows] = await Promise.all([fetchCsv(c.csvIn), fetchCsv(c.csvOut)]);
   const records = [];
   let skipped = 0;
-  let foundIn = false, foundOut = false;
 
-  tables.forEach(rows=>{
-    const sheetType = detectSheetType(rows);
-    if(!sheetType) return;
-    if(sheetType === 'in') foundIn = true; else foundOut = true;
-
-    rows.slice(1).forEach(row=>{
-      const display = (row[0] || '').trim();
-      if(!display) return;
-      const parsed = parseRegDisplay(display);
-      if(!parsed){ skipped++; return; }
-
-      if(sheetType === 'in'){
-        records.push({
-          type:'in', beYear: parsed.beYear, regNo: parsed.regNo, regNoDisplay: display,
-          companyNo: row[1]||'', docDate: row[2]||'', subject: (row[3]||'').trim(),
-          from: row[4]||'', to: row[5]||'', receivedDate: row[6]||'', action: row[7]||'',
-          isPlaceholder: !(row[3]||'').trim()
-        });
-      } else {
-        records.push({
-          type:'out', beYear: parsed.beYear, regNo: parsed.regNo, regNoDisplay: display,
-          docDate: row[1]||'', subject: (row[2]||'').trim(), from: row[3]||'',
-          to: row[4]||'', folder: row[5]||'', action: row[6]||'',
-          isPlaceholder: !(row[2]||'').trim()
-        });
-      }
+  inRows.slice(1).forEach(row=>{
+    const display = (row[0] || '').trim();
+    if(!display) return;
+    const p = parseRegDisplay(display);
+    if(!p){ skipped++; return; }
+    records.push({
+      type:'in', beYear: p.beYear, regNo: p.regNo, subNo: p.subNo, regNoDisplay: display,
+      companyNo: row[1]||'', docDate: row[2]||'', subject: (row[3]||'').trim(),
+      from: row[4]||'', to: row[5]||'', receivedDate: row[6]||'', action: row[7]||'',
+      isPlaceholder: !(row[3]||'').trim()
     });
   });
 
-  if(!foundIn || !foundOut){
-    throw new Error('อ่านแท็บไม่ครบ — ตรวจสอบว่าเผยแพร่ทั้งแท็บ "หนังสือรับ" และ "หนังสือออก" เป็น CSV แล้ว');
-  }
+  outRows.slice(1).forEach(row=>{
+    const display = (row[0] || '').trim();
+    if(!display) return;
+    const p = parseRegDisplay(display);
+    if(!p){ skipped++; return; }
+    records.push({
+      type:'out', beYear: p.beYear, regNo: p.regNo, subNo: p.subNo, regNoDisplay: display,
+      docDate: row[1]||'', subject: (row[2]||'').trim(), from: row[3]||'',
+      to: row[4]||'', folder: row[5]||'', action: row[6]||'',
+      isPlaceholder: !(row[2]||'').trim()
+    });
+  });
 
   RECORDS = records;
   SHEET_LOADED = true;
-  mergePending(); // รวมรายการที่ส่งไปแล้วแต่ CSV ยังไม่อัปเดต
-  return { count: RECORDS.length, skipped, pending: PENDING.length };
+  mergePending();
+  return { count: RECORDS.length, skipped, pending: pendingOf(CURRENT).length };
 }
 
 function loadAll(){ return RECORDS; }
 
-// ส่งข้อมูลไปเพิ่มแถวใน Google Sheets ผ่าน Apps Script
+// ส่งข้อมูลไปเพิ่มแถวใน Google Sheets ผ่าน Apps Script (ระบุสัญญาด้วย)
 async function syncToSheet(record){
   try{
     await fetch(SYNC_URL, {
       method: 'POST',
       mode: 'no-cors', // อ่าน response ไม่ได้ แต่คำขอถูกประมวลผลตามปกติ
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify(record)
+      body: JSON.stringify({ ...record, contract: CURRENT })
     });
     return true;
   }catch(err){
@@ -572,24 +657,40 @@ function currentBEYear(){
 }
 
 // ---------- Number computation ----------
+// yearlyReset = true  -> นับเฉพาะเลขในปีปัจจุบัน (ขึ้นปีใหม่เริ่ม 1)
+// yearlyReset = false -> นับต่อเนื่องจากเลขสูงสุดทุกปี (ไม่รีเซ็ต)
 function suggestedNumber(type){
   const year = currentBEYear();
-  const nums = RECORDS.filter(r=>r.type===type && r.beYear===year).map(r=>r.regNo);
+  const c = cfg();
+  const pool = c.yearlyReset
+    ? RECORDS.filter(r=>r.type===type && r.beYear===year)
+    : RECORDS.filter(r=>r.type===type);
+  const nums = pool.map(r=>r.regNo);
   const n = nums.length ? Math.max(...nums)+1 : 1;
   return {n, year};
 }
+
 function formatNumber(type, n, year){
-  if(type==='in') return `${n}/${year}`;
-  return `PID903(R1)  ${n}/${year}`;
+  const c = cfg();
+  return type==='in' ? c.fmtIn(n, year) : c.fmtOut(n, year);
 }
 
 function refreshPreview(type){
   const {n, year} = suggestedNumber(type);
   document.getElementById(`num-input-${type}`).value = n;
-  document.getElementById(`stamp-suffix-${type}`).textContent = `/${year}`;
+  document.getElementById(`stamp-preview-${type}`).textContent = formatNumber(type, n, year);
 }
 document.getElementById('btn-recalc-in').addEventListener('click', ()=>refreshPreview('in'));
 document.getElementById('btn-recalc-out').addEventListener('click', ()=>refreshPreview('out'));
+
+// อัปเดตตัวอย่างเลขเต็มทันทีเมื่อผู้ใช้พิมพ์เลขเอง
+['in','out'].forEach(type=>{
+  document.getElementById(`num-input-${type}`).addEventListener('input', ()=>{
+    const n = parseInt(document.getElementById(`num-input-${type}`).value, 10);
+    const el = document.getElementById(`stamp-preview-${type}`);
+    el.textContent = (n && n>0) ? formatNumber(type, n, currentBEYear()) : '—';
+  });
+});
 
 // ---------- Boot: ดึงข้อมูลจาก Google Sheets ทันทีที่เปิดหน้าเว็บ ----------
 function setSaveButtonsEnabled(enabled){
@@ -597,11 +698,16 @@ function setSaveButtonsEnabled(enabled){
   document.getElementById('btn-save-out').disabled = !enabled;
 }
 
-async function bootstrap(){
+async function loadContract(){
   const banner = document.getElementById('sync-banner');
+  const c = cfg();
+  document.getElementById('contract-subtitle').innerHTML =
+    `${c.subtitle} &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 9</b>`;
+  SHEET_LOADED = false;
+  RECORDS = [];
   setSaveButtonsEnabled(false);
   banner.className = 'sync-banner loading';
-  banner.textContent = '⏳ กำลังดึงทะเบียนล่าสุดจาก Google Sheets...';
+  banner.textContent = `⏳ กำลังดึงทะเบียนของสัญญา ${c.label} จาก Google Sheets...`;
   try{
     const { count, skipped, pending } = await loadFromSheets();
     refreshPreview('in');
@@ -609,16 +715,59 @@ async function bootstrap(){
     renderHistory();
     setSaveButtonsEnabled(true);
     banner.className = 'sync-banner ok';
-    banner.textContent = `✅ เชื่อมต่อ Google Sheets แล้ว — ทะเบียน ${count} รายการ`
+    banner.textContent = `✅ ${c.label} — ทะเบียน ${count} รายการ`
       + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '')
-      + (pending ? ` — รอ Sheets อัปเดต ${pending} รายการ` : '');
+      + (pending ? ` — รอ Sheets อัปเดต ${pending} รายการ` : '')
+      + (c.yearlyReset ? '' : ' — สัญญานี้นับเลขต่อเนื่อง ไม่รีเซ็ตรายปี');
   }catch(err){
     banner.className = 'sync-banner err';
-    banner.textContent = '⚠ เชื่อมต่อ Google Sheets ไม่สำเร็จ — ปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกดรีเฟรช (' + err.message + ')';
+    banner.textContent = `⚠ เชื่อมต่อ ${c.label} ไม่สำเร็จ — ปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ (${err.message})`;
     setSaveButtonsEnabled(false);
+    renderHistory();
   }
 }
-bootstrap();
+
+// ---------- หน้าจอเลือกสัญญา ----------
+const screenSelect = document.getElementById('screen-select');
+const screenApp = document.getElementById('screen-app');
+
+// สร้างการ์ดสัญญาจาก Config โดยอัตโนมัติ — เพิ่มสัญญาใหม่ไม่ต้องแก้ HTML
+document.getElementById('contract-grid').innerHTML = Object.keys(CONTRACTS).map(key=>{
+  const c = CONTRACTS[key];
+  const rule = c.yearlyReset
+    ? 'เลขเริ่มนับ 1 ใหม่ทุกปี'
+    : '<span class="cont">เลขนับต่อเนื่อง ไม่รีเซ็ตรายปี</span>';
+  return `
+    <button class="contract-card" data-contract="${key}">
+      <p class="name">${c.label}</p>
+      <p class="desc">${c.subtitle}</p>
+      <p class="meta">ตัวอย่างเลขออก: ${c.fmtOut(1, currentBEYear())} &nbsp;·&nbsp; ${rule}</p>
+    </button>`;
+}).join('');
+
+document.querySelectorAll('.contract-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    CURRENT = card.dataset.contract;
+    document.getElementById('contract-current-name').textContent = cfg().label;
+    screenSelect.style.display = 'none';
+    screenApp.style.display = 'block';
+    // กลับไปแท็บแรกเสมอ เพื่อไม่ให้ค้างอยู่ที่แท็บของสัญญาก่อนหน้า
+    document.querySelector('nav.tabs button[data-tab="in"]').click();
+    window.scrollTo(0,0);
+    loadContract();
+  });
+});
+
+document.getElementById('btn-change-contract').addEventListener('click', ()=>{
+  const waiting = pendingOf(CURRENT).length;
+  if(waiting && !confirm(
+      `สัญญา ${cfg().label} ยังมี ${waiting} รายการที่ส่งไปแล้วแต่ Google Sheets ยังยืนยันไม่ครบ\n\n` +
+      `หากเปลี่ยนสัญญาตอนนี้ ระบบจะยังจำรายการเหล่านี้ไว้ แต่ควรเปิด Google Sheet ตรวจสอบว่าแถวขึ้นจริงแล้ว\n\nต้องการเปลี่ยนสัญญาหรือไม่?`
+  )) return;
+  screenApp.style.display = 'none';
+  screenSelect.style.display = 'block';
+  window.scrollTo(0,0);
+});
 
 function createPlaceholders(type, year, fromN, toN){
   const arr = [];
@@ -771,12 +920,15 @@ async function saveRecord(type){
     // ดึงข้อมูลล่าสุดก่อนเสมอ เพื่อตรวจเลขซ้ำกับความจริงใน Sheets ณ ขณะนั้น
     await loadFromSheets();
 
-    const existing = RECORDS.find(r=>r.type===type && r.beYear===year && r.regNo===chosen);
+    // สัญญาที่รีเซ็ตรายปี -> เลขซ้ำได้ถ้าคนละปี | สัญญาที่นับต่อเนื่อง -> ห้ามซ้ำข้ามทุกปี
+    const existing = cfg().yearlyReset
+      ? RECORDS.find(r=>r.type===type && r.beYear===year && r.regNo===chosen)
+      : RECORDS.find(r=>r.type===type && r.regNo===chosen);
     let fillingGap = false;
     if(existing){
       if(!existing.isPlaceholder){
         statusEl.className='status show err';
-        statusEl.textContent = `เลขที่ ${formatNumber(type, chosen, year)} ถูกใช้ไปแล้วใน Google Sheets กรุณาเลือกเลขอื่น`;
+        statusEl.textContent = `เลขที่ ${existing.regNoDisplay} ถูกใช้ไปแล้วใน Google Sheets กรุณาเลือกเลขอื่น`;
         refreshPreview(type);
         renderHistory();
         return;
@@ -787,8 +939,7 @@ async function saveRecord(type){
     // ถ้าข้ามเลข ให้สร้างแถวเว้นว่างคั่นไว้ใน Sheets
     let placeholders = [];
     if(!fillingGap){
-      const usedNums = RECORDS.filter(r=>r.type===type && r.beYear===year).map(r=>r.regNo);
-      const autoNext = usedNums.length ? Math.max(...usedNums)+1 : 1;
+      const {n: autoNext} = suggestedNumber(type);
       if(chosen > autoNext) placeholders = createPlaceholders(type, year, autoNext, chosen);
     }
 
@@ -818,19 +969,21 @@ async function saveRecord(type){
     await syncToSheet(record);
 
     // ลงทะเบียนเป็นรายการที่รอ CSV อัปเดต — ป้องกันการเสนอเลขซ้ำระหว่างรอ
-    PENDING.push(...placeholders, record);
+    pendingOf(CURRENT).push(...placeholders, record);
     mergePending();
 
     const label = type==='in' ? 'หนังสือรับ' : 'หนังสือออก';
+    const savedContract = CURRENT;
 
     // พยายามยืนยันจาก Sheets (CSV ที่เผยแพร่อาจหน่วง 1-5 นาที)
     statusEl.textContent = 'กำลังตรวจสอบผลการบันทึก...';
     let confirmed = false;
     for(let attempt=0; attempt<3 && !confirmed; attempt++){
       await new Promise(r=>setTimeout(r, 2000));
+      if(CURRENT !== savedContract) return; // ผู้ใช้สลับสัญญาระหว่างรอ — หยุดเพื่อไม่ให้ข้อมูลปะปน
       try{
         await loadFromSheets(); // มี mergePending() ในตัว จึงไม่ทำให้รายการที่รออยู่หาย
-        confirmed = !PENDING.find(p=>p.type===type && p.beYear===year && p.regNo===chosen);
+        confirmed = !pendingOf(savedContract).find(p=>p.type===type && p.beYear===year && p.regNo===chosen);
       }catch(e){ /* ลองใหม่ */ }
     }
 
@@ -906,37 +1059,19 @@ document.getElementById('filter-text').addEventListener('input', renderHistory);
 
 // ---------- Refresh from Google Sheets ----------
 document.getElementById('btn-refresh-sheet').addEventListener('click', async ()=>{
-  const banner = document.getElementById('sync-banner');
   const btn = document.getElementById('btn-refresh-sheet');
   btn.disabled = true;
-  banner.className = 'sync-banner loading';
-  banner.textContent = '⏳ กำลังดึงทะเบียนล่าสุดจาก Google Sheets...';
-  try{
-    const { count, skipped, pending } = await loadFromSheets();
-    refreshPreview('in');
-    refreshPreview('out');
-    renderHistory();
-    setSaveButtonsEnabled(true);
-    banner.className = 'sync-banner ok';
-    banner.textContent = `✅ อัปเดตแล้ว — ทะเบียน ${count} รายการ`
-      + (skipped ? ` (ข้าม ${skipped} แถวที่อ่านเลขทะเบียนไม่ได้)` : '')
-      + (pending ? ` — รอ Sheets อัปเดต ${pending} รายการ` : '');
-  }catch(err){
-    banner.className = 'sync-banner err';
-    banner.textContent = '⚠ เชื่อมต่อ Google Sheets ไม่สำเร็จ (' + err.message + ')';
-    setSaveButtonsEnabled(false);
-  }finally{
-    btn.disabled = false;
-  }
+  await loadContract();
+  btn.disabled = false;
 });
 
 // ---------- Export CSV ----------
 document.getElementById('btn-export').addEventListener('click', ()=>{
   const all = [...RECORDS];
   all.sort((a,b)=> a.type.localeCompare(b.type) || a.beYear-b.beYear || a.regNo-b.regNo);
-  const header = ['ประเภท','เลขทะเบียน','เลขที่บริษัท','ลงวันที่','เรื่อง','จาก','ถึง','แฟ้ม','รับเมื่อวันที่','ผลการดำเนินการ'];
+  const header = ['สัญญา','ประเภท','เลขทะเบียน','เลขที่บริษัท','ลงวันที่','เรื่อง','จาก','ถึง','แฟ้ม','รับเมื่อวันที่','ผลการดำเนินการ'];
   const rows = all.map(r=>[
-    r.type==='in'?'หนังสือรับ':'หนังสือออก', r.regNoDisplay, r.companyNo||'', r.docDate||'',
+    cfg().label, r.type==='in'?'หนังสือรับ':'หนังสือออก', r.regNoDisplay, r.companyNo||'', r.docDate||'',
     r.subject||'', r.from||'', r.to||'', r.folder||'', r.receivedDate||'', r.action||''
   ]);
   const csv = [header, ...rows].map(row=>
@@ -945,7 +1080,7 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'pid903-registry-export.csv';
+  a.href = url; a.download = `registry-${CURRENT}-export.csv`;
   a.click();
   URL.revokeObjectURL(url);
 });
