@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ทะเบียนหนังสือรับ-ส่ง | PID-903(R1)</title>
+<title>ทะเบียนหนังสือรับ-ส่ง</title>
+<meta name="description" content="ระบบออกเลขทะเบียนหนังสือรับและหนังสือออก">
+<meta name="robots" content="noindex, nofollow">
+<!-- ควบคุมข้อความตัวอย่างเมื่อแชร์ลิงก์ผ่าน LINE / iMessage / Facebook -->
+<meta property="og:title" content="ทะเบียนหนังสือรับ-ส่ง">
+<meta property="og:description" content="ระบบออกเลขทะเบียนหนังสือรับและหนังสือออก">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ทะเบียนหนังสือรับ-ส่ง">
+<meta name="twitter:description" content="ระบบออกเลขทะเบียนหนังสือรับและหนังสือออก">
 <style>
   :root{
     --navy:#122A43;
@@ -257,7 +266,7 @@
   <header class="top">
     <p class="eyebrow">ระบบทะเบียนเอกสาร</p>
     <h1>เลือกสัญญา</h1>
-    <p class="subtitle">กรุณาเลือกสัญญาที่ต้องการออกเลขทะเบียน &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 9</b></p>
+    <p class="subtitle">กรุณาเลือกสัญญาที่ต้องการออกเลขทะเบียน &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 10</b></p>
   </header>
   <main>
     <p class="select-warn">⚠ ตรวจสอบให้แน่ใจว่าเลือกสัญญาถูกต้อง ก่อนออกเลขทะเบียนทางการ</p>
@@ -456,7 +465,7 @@
   </main>
 
   <footer class="note">
-    <b>หมายเหตุ:</b> Google Sheets "PID-903(R1)" คือแหล่งข้อมูลจริงเพียงแหล่งเดียว — เว็บแอปนี้อ่านข้อมูลจากไฟล์ CSV ที่เผยแพร่ และเขียนกลับผ่าน Apps Script
+    <b>หมายเหตุ:</b> Google Sheets ของแต่ละสัญญาคือแหล่งข้อมูลจริงเพียงแหล่งเดียว — เว็บแอปนี้อ่านข้อมูลจากไฟล์ CSV ที่เผยแพร่ และเขียนกลับผ่าน Apps Script
     ไม่เก็บข้อมูลไว้ในเครื่อง จึงเห็นทะเบียนตรงกันทุกอุปกรณ์ และต้องมีอินเทอร์เน็ตขณะใช้งาน
     หากเชื่อมต่อไม่ได้ ระบบจะปิดการออกเลขไว้เพื่อป้องกันเลขซ้ำ
     <br><br>
@@ -702,7 +711,7 @@ async function loadContract(){
   const banner = document.getElementById('sync-banner');
   const c = cfg();
   document.getElementById('contract-subtitle').innerHTML =
-    `${c.subtitle} &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 9</b>`;
+    `${c.subtitle} &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 10</b>`;
   SHEET_LOADED = false;
   RECORDS = [];
   setSaveButtonsEnabled(false);
