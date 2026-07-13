@@ -266,7 +266,7 @@
   <header class="top">
     <p class="eyebrow">ระบบทะเบียนเอกสาร</p>
     <h1>เลือกสัญญา</h1>
-    <p class="subtitle">กรุณาเลือกสัญญาที่ต้องการออกเลขทะเบียน &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 10</b></p>
+    <p class="subtitle">กรุณาเลือกสัญญาที่ต้องการออกเลขทะเบียน &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 11</b></p>
   </header>
   <main>
     <p class="select-warn">⚠ ตรวจสอบให้แน่ใจว่าเลือกสัญญาถูกต้อง ก่อนออกเลขทะเบียนทางการ</p>
@@ -495,7 +495,7 @@ tabs.forEach(btn=>{
 
 // ---------- ตารางตั้งค่าสัญญา (Config) — เพิ่มสัญญาใหม่แก้เฉพาะที่นี่ ----------
 // เขียนข้อมูล: ผ่าน Apps Script (doPost) — ต้องส่ง contract key ไปด้วย
-const SYNC_URL = 'https://script.google.com/macros/s/AKfycbwps-WwtLYK29f_0XT7pPZfZEI6SNEIA74S18GkS4_WqCUTY2OMRH47_Cb8PSBvD2A/exec';
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbx-wxHvmOQGViXGWfudTc2S3RrSKIbtrJ4m_WBd21_t3mLmS4aHfmBiBgr7aAdtUh7-/exec';
 
 // pad(n, 3) => "004"  |  pad(n, 0) => "4"
 function pad(n, width){ return String(n).padStart(width, '0'); }
@@ -711,7 +711,7 @@ async function loadContract(){
   const banner = document.getElementById('sync-banner');
   const c = cfg();
   document.getElementById('contract-subtitle').innerHTML =
-    `${c.subtitle} &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 10</b>`;
+    `${c.subtitle} &nbsp;|&nbsp; <b style="color:var(--bronze)">เวอร์ชัน 11</b>`;
   SHEET_LOADED = false;
   RECORDS = [];
   setSaveButtonsEnabled(false);
